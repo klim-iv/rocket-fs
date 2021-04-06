@@ -9,28 +9,26 @@ use rocket_contrib::serve::StaticFiles;
 use rocket::response::content;
 
 use handlebars::Handlebars;
-use serde::ser::{Serialize, SerializeStruct};
+use serde::{Serialize, Deserialize};
 
 #[macro_use]
 extern crate serde_json;
 
-const TEMPLATE: &str = include_str!("browse.rocket");
+macro_rules! CFG_FILE {
+  () => ("rocket-fs.json")
+}
 
-#[derive(Debug)]
+macro_rules! TEMPLATE_FILE {
+  () => ("browse.rocket")
+}
+
+const TEMPLATE: &str = include_str!(TEMPLATE_FILE!());
+
+#[derive(Debug, Serialize, Deserialize)]
 struct FileInfo {
   name: String,
   size: u64,
   f_type: u8,
-}
-
-impl Serialize for FileInfo {
-  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
-    let mut f_info = serializer.serialize_struct("FileInfo", 2)?;
-    f_info.serialize_field("name", &self.name)?;
-    f_info.serialize_field("size", &self.size)?;
-    f_info.serialize_field("type", &self.f_type)?;
-    f_info.end()
-  }
 }
 
 #[get("/")]
@@ -98,20 +96,41 @@ fn get_dir_tmpl() -> content::Html<String> {
 
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Cfg {
+  host: String,
+  port: u16,
+}
+
 fn main() {
-  //let mut cfg = Config::production();
-  let mut cfg = Config::development();
+#[cfg(not(debug_assertions))]
+  let mut www_cfg = Config::production();
+#[cfg(debug_assertions)]
+  let mut www_cfg = Config::development();
+
   let working_dir = env::current_dir();
+
+  let f = fs::read(CFG_FILE!()).unwrap_or_default();
+
+  let cfg;
+  if f.len() > 0 {
+    cfg = String::from_utf8_lossy(&f).into_owned();
+  } else {
+    cfg = include_str!(CFG_FILE!()).to_string();
+  }
+
+  let cfg: Cfg = serde_json::from_str(&cfg).unwrap();
 
   match working_dir {
     Ok(wd) => {
-//      cfg.set_address("172.11.111.11");
-      cfg.set_address("0.0.0.0");
-      cfg.set_port(9090);
-      cfg.set_root(&wd);
-      cfg.set_log_level(LoggingLevel::Debug);
+      www_cfg.set_address(cfg.host);
+      www_cfg.set_port(cfg.port);
+      www_cfg.set_root(&wd);
 
-      rocket::custom(cfg)
+      #[cfg(debug_assertions)]
+      www_cfg.set_log_level(LoggingLevel::Debug);
+
+      rocket::custom(www_cfg)
         .mount("/files", StaticFiles::from(&wd))
         .mount("/", routes![get_dir_tmpl, ])
         .launch();
