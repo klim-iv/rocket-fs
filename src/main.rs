@@ -4,7 +4,7 @@
 use std::env;
 use std::fs;
 
-use rocket::config::{Config, LoggingLevel};
+use rocket::config::Config;
 use rocket_contrib::serve::StaticFiles;
 use rocket::response::content;
 
@@ -105,14 +105,12 @@ struct Cfg {
 fn main() {
 #[cfg(not(debug_assertions))]
   let mut www_cfg = Config::production();
+
 #[cfg(debug_assertions)]
   let mut www_cfg = Config::development();
 
-  let working_dir = env::current_dir();
-
-  let f = fs::read(CFG_FILE!()).unwrap_or_default();
-
   let cfg;
+  let f = fs::read(CFG_FILE!()).unwrap_or_default();
   if f.len() > 0 {
     cfg = String::from_utf8_lossy(&f).into_owned();
   } else {
@@ -120,23 +118,25 @@ fn main() {
   }
 
   let cfg: Cfg = serde_json::from_str(&cfg).unwrap();
+  let working_dir = env::current_dir();
 
   match working_dir {
     Ok(wd) => {
-      www_cfg.set_address(cfg.host);
+      www_cfg.set_address(cfg.host).unwrap();
       www_cfg.set_port(cfg.port);
       www_cfg.set_root(&wd);
 
       #[cfg(debug_assertions)]
-      www_cfg.set_log_level(LoggingLevel::Debug);
+      www_cfg.set_log_level(rocket::config::LoggingLevel::Debug);
 
       rocket::custom(www_cfg)
         .mount("/files", StaticFiles::from(&wd))
         .mount("/", routes![get_dir_tmpl, ])
         .launch();
     },
-    Err(e) => {
-      print!("ERR ON OPEN DIR: {:?}\n", e)
+    Err(_e) => {
+      #[cfg(debug_assertions)]
+      print!("ERR ON OPEN DIR: {:?}\n", _e)
     }
   }
 }
