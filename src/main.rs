@@ -78,6 +78,8 @@ fn get_dir_tmpl() -> content::Html<String> {
         {
           "title": "dir",
           "content": out,
+          "inc_js": include_str!(concat!(env!("OUT_DIR"), "/inc_js")),
+          "inc_css": include_str!(concat!(env!("OUT_DIR"), "/inc_css")),
         }
       ));
 
