@@ -5,8 +5,8 @@ use std::env;
 use std::fs;
 
 use rocket::config::Config;
-use rocket_contrib::serve::StaticFiles;
-use rocket::response::content;
+use rocket_contrib::serve::{StaticFiles, Options};
+use rocket::response::{Redirect, content};
 
 use handlebars::Handlebars;
 use serde::{Serialize, Deserialize};
@@ -32,32 +32,54 @@ struct FileInfo {
 }
 
 #[get("/")]
-fn get_dir_tmpl() -> content::Html<String> {
+fn index() -> Redirect {
+  Redirect::to("/?dir=.")
+}
+
+#[get("/?<dir>")]
+fn get_dir_tmpl(dir:String) -> content::Html<String> {
   let working_dir = env::current_dir();
+  let dir_name = dir.clone();
   match working_dir {
-    Ok(wd) => {
+    Ok(mut wd) => {
+      wd = wd.join(dir);
+      let mut dirs = Vec::new();
       let mut out = Vec::new();
       let d = fs::read_dir(&wd);
       match d {
-        Ok(files) => {
+        Ok(_files) => {
+          let mut files: Vec<_> = _files.map(|f| f.unwrap()).collect();
+          files.sort_by_key(|k|
+            if k.metadata().unwrap().is_dir() {
+              "0_".to_owned() + &k.file_name().into_string().unwrap()
+            }
+            else {
+              "1_".to_owned() + &k.file_name().into_string().unwrap()
+            }
+          );
           for r in files {
-              if let Ok(f) = r {
-                if let Ok(ft) = f.file_type() {
-                  if !ft.is_dir() {
-                    if let Ok(m) = f.metadata() {
-                      let file_data = FileInfo {
-                        name : f.file_name().into_string().unwrap_or("_".to_string()),
-                        size : m.len(),
-                        f_type : match m.file_type().is_file() {
-                          true => 1,
-                          false => 2,
-                        },
-                      };
-                      out.push(file_data);
-                    }
-                  }
+            if let Ok(ft) = r.file_type() {
+              if !ft.is_dir() {
+                if let Ok(m) = r.metadata() {
+                  let file_data = FileInfo {
+                    name : r.file_name().into_string().unwrap_or("_".to_string()),
+                    size : m.len(),
+                    f_type : match m.file_type().is_file() {
+                      true => 1,
+                      false => 2,
+                    },
+                  };
+                  out.push(file_data);
                 }
+              } else {
+                let file_data = FileInfo {
+                  name : r.file_name().into_string().unwrap_or("_".to_string()),
+                  size : 0,
+                  f_type : 2,
+                };
+                dirs.push(file_data);
               }
+            }
           }
         },
         Err(e) => {
@@ -76,10 +98,12 @@ fn get_dir_tmpl() -> content::Html<String> {
       let hb = Handlebars::new();
       let rhb = hb.render_template(&template, &json!(
         {
-          "title": "dir",
+          "title": dir_name,
+          "dirs": dirs,
           "content": out,
           "inc_js": include_str!(concat!(env!("OUT_DIR"), "/inc_js")),
           "inc_css": include_str!(concat!(env!("OUT_DIR"), "/inc_css")),
+          "icon_css": include_str!(concat!(env!("OUT_DIR"), "/icon_css")),
         }
       ));
 
@@ -131,9 +155,10 @@ fn main() {
       #[cfg(debug_assertions)]
       www_cfg.set_log_level(rocket::config::LoggingLevel::Debug);
 
+      let options = Options::Index | Options::DotFiles;
       rocket::custom(www_cfg)
-        .mount("/files", StaticFiles::from(&wd))
-        .mount("/", routes![get_dir_tmpl, ])
+        .mount("/files", StaticFiles::new(&wd, options))
+        .mount("/", routes![index, get_dir_tmpl, ])
         .launch();
     },
     Err(_e) => {

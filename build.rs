@@ -6,6 +6,7 @@ use std::path;
 
 const JS: &str = "https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js";
 const CSS: &str = "https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css";
+const ICONS: &str = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css";
 
 fn main() -> std::io::Result<()> {
   //download bootstrap-js
@@ -43,6 +44,11 @@ fn main() -> std::io::Result<()> {
       )?
     }
   }
+
+  //bootstrap icons, do not download at the moment
+  fs::write(
+    format!("{}/icon_css", env::var_os("OUT_DIR").unwrap().into_string().unwrap()),
+    format!("<link href=\"{}\" rel=\"stylesheet\">", ICONS))?;
 
   Ok(())
 }
