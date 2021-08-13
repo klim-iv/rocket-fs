@@ -47,8 +47,8 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
   let working_dir = env::current_dir();
   let dir_name = decode(&dir).unwrap().to_string();
   match working_dir {
-    Ok(mut wd) => {
-      wd = wd.join(dir_name.clone());
+    Ok(_wd) => {
+      let wd = _wd.join(dir_name.clone());
       let mut dirs = Vec::new();
       let mut out = Vec::new();
       let d = fs::read_dir(&wd);
@@ -94,7 +94,7 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
       }
 
       let mut template = TEMPLATE.to_string();
-      let f = fs::read(wd.join("/browse.rocket"));
+      let f = fs::read(_wd.join("browse.rocket"));
 
       match f {
         Ok(s) => template = String::from_utf8_lossy(&s).into_owned(),
