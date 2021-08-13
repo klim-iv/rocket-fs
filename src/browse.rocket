@@ -23,7 +23,7 @@
 	    {{#each dirs as |d id| }}
           <tr>
             <td scope="col"><i class="bi bi-folder-fill"></i></td>
-            <td scope="col"><a href="/?dir={{../title}}/{{d.name}}">{{d.name}}</a></td>
+            <td scope="col"><a href="/?dir={{{../title}}}/{{{d.name}}}">{{d.name}}</a></td>
             <td scope="col"></td>
             <td scope="col"></td>
           </tr>
@@ -31,7 +31,7 @@
 	    {{#each content as |c id| }}
           <tr>
             <td scope="col">{{id}}</td>
-            <td scope="col"><a href="/files/{{../title}}/{{c.name}}"><i class="bi bi-file-earmark"></i> {{c.name}}</a></td>
+            <td scope="col"><a href="/files/{{{../title}}}/{{{c.name}}}"><i class="bi bi-file-earmark"></i> {{c.name}}</a></td>
             <td scope="col" style="text-align:right">{{c.size}}</td>
             <td scope="col"></td>
           </tr>

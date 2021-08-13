@@ -11,6 +11,8 @@ use rocket::response::{Redirect, content};
 use handlebars::Handlebars;
 use serde::{Serialize, Deserialize};
 
+use urlencoding::{encode, decode};
+
 #[macro_use]
 extern crate serde_json;
 
@@ -23,6 +25,10 @@ macro_rules! TEMPLATE_FILE {
 }
 
 const TEMPLATE: &str = include_str!(TEMPLATE_FILE!());
+
+fn escape_fn(s:&str) -> String {
+  return decode(s).unwrap().to_string()
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct FileInfo {
@@ -39,10 +45,10 @@ fn index() -> Redirect {
 #[get("/?<dir>")]
 fn get_dir_tmpl(dir:String) -> content::Html<String> {
   let working_dir = env::current_dir();
-  let dir_name = dir.clone();
+  let dir_name = decode(&dir).unwrap().to_string();
   match working_dir {
     Ok(mut wd) => {
-      wd = wd.join(dir);
+      wd = wd.join(dir_name.clone());
       let mut dirs = Vec::new();
       let mut out = Vec::new();
       let d = fs::read_dir(&wd);
@@ -62,7 +68,7 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
               if !ft.is_dir() {
                 if let Ok(m) = r.metadata() {
                   let file_data = FileInfo {
-                    name : r.file_name().into_string().unwrap_or("_".to_string()),
+                    name : encode(&r.file_name().into_string().unwrap_or("_".to_string())).to_string(),
                     size : m.len(),
                     f_type : match m.file_type().is_file() {
                       true => 1,
@@ -73,7 +79,7 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
                 }
               } else {
                 let file_data = FileInfo {
-                  name : r.file_name().into_string().unwrap_or("_".to_string()),
+                  name : encode(&r.file_name().into_string().unwrap_or("_".to_string())).to_string(),
                   size : 0,
                   f_type : 2,
                 };
@@ -95,7 +101,8 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
         Err(_) => (),
       }
 
-      let hb = Handlebars::new();
+      let mut hb = Handlebars::new();
+      hb.register_escape_fn(escape_fn);
       let rhb = hb.render_template(&template, &json!(
         {
           "title": dir_name,
