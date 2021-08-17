@@ -3,6 +3,7 @@
 
 use std::env;
 use std::fs;
+use std::time::SystemTime;
 
 use rocket::config::Config;
 use rocket_contrib::serve::{StaticFiles, Options};
@@ -15,6 +16,10 @@ use urlencoding::{encode, decode};
 
 #[macro_use]
 extern crate serde_json;
+
+extern crate chrono;
+use chrono::offset::Utc;
+use chrono::DateTime;
 
 macro_rules! CFG_FILE {
   () => ("rocket-fs.json")
@@ -35,6 +40,7 @@ struct FileInfo {
   name: String,
   size: u64,
   f_type: u8,
+  created: String,
 }
 
 #[get("/")]
@@ -67,6 +73,7 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
             if let Ok(ft) = r.file_type() {
               if !ft.is_dir() {
                 if let Ok(m) = r.metadata() {
+                  let datetime: DateTime<Utc> = m.created().unwrap().into();
                   let file_data = FileInfo {
                     name : encode(&r.file_name().into_string().unwrap_or("_".to_string())).to_string(),
                     size : m.len(),
@@ -74,6 +81,7 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
                       true => 1,
                       false => 2,
                     },
+                    created : datetime.format("%d-%m-%Y %T").to_string(),
                   };
                   out.push(file_data);
                 }
@@ -82,6 +90,7 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
                   name : encode(&r.file_name().into_string().unwrap_or("_".to_string())).to_string(),
                   size : 0,
                   f_type : 2,
+                  created : format!("{:?}", SystemTime::UNIX_EPOCH),
                 };
                 dirs.push(file_data);
               }

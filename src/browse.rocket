@@ -17,7 +17,7 @@
           <th scope="col">#</th>
           <th scope="col">Name</th>
           <th scope="col">Size</th>
-          <th scope="col"></th>
+          <th scope="col">Created</th>
         </thead>
         <tbody>
 	    {{#each dirs as |d id| }}
@@ -33,7 +33,7 @@
             <td scope="col">{{id}}</td>
             <td scope="col"><a href="/files/{{{../title}}}/{{{c.name}}}"><i class="bi bi-file-earmark"></i> {{c.name}}</a></td>
             <td scope="col" style="text-align:right">{{c.size}}</td>
-            <td scope="col"></td>
+            <td scope="col">{{created}}</td>
           </tr>
 	    {{/each}}
         </tbody>
