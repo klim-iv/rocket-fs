@@ -3,6 +3,8 @@
 
 use std::env;
 use std::fs;
+use std::sync::Arc;
+use std::sync::RwLock;
 use std::time::SystemTime;
 
 use rocket::config::Config;
@@ -45,7 +47,7 @@ struct FileInfo {
 
 #[get("/")]
 fn index() -> Redirect {
-  Redirect::to("/?dir=.")
+  Redirect::to(format!("{}/?dir=.", &Cfg::current().prefix))
 }
 
 #[get("/?<dir>")]
@@ -140,9 +142,36 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Cfg {
+  prefix: String,
   host: String,
   port: u16,
 }
+
+impl Cfg {
+  pub fn current() -> Arc<Cfg> {
+    CURRENT_CONFIG.with(|c| c.read().unwrap().clone())
+  }
+}
+
+impl Default for Cfg {
+    fn default() -> Self {
+      let cfg;
+      let f = fs::read(CFG_FILE!()).unwrap_or_default();
+      if f.len() > 0 {
+        cfg = String::from_utf8_lossy(&f).into_owned();
+      } else {
+        cfg = include_str!(CFG_FILE!()).to_string();
+      }
+
+      let cfg: Cfg = serde_json::from_str(&cfg).unwrap();
+      cfg
+  }
+}
+
+thread_local! {
+  static CURRENT_CONFIG: RwLock<Arc<Cfg>> = RwLock::new(Default::default());
+}
+
 
 fn main() {
 #[cfg(not(debug_assertions))]
@@ -151,21 +180,12 @@ fn main() {
 #[cfg(debug_assertions)]
   let mut www_cfg = Config::development();
 
-  let cfg;
-  let f = fs::read(CFG_FILE!()).unwrap_or_default();
-  if f.len() > 0 {
-    cfg = String::from_utf8_lossy(&f).into_owned();
-  } else {
-    cfg = include_str!(CFG_FILE!()).to_string();
-  }
-
-  let cfg: Cfg = serde_json::from_str(&cfg).unwrap();
   let working_dir = env::current_dir();
 
   match working_dir {
     Ok(wd) => {
-      www_cfg.set_address(cfg.host).unwrap();
-      www_cfg.set_port(cfg.port);
+      www_cfg.set_address(&Cfg::current().host).unwrap();
+      www_cfg.set_port(Cfg::current().port);
       www_cfg.set_root(&wd);
 
       #[cfg(debug_assertions)]
