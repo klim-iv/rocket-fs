@@ -53,10 +53,15 @@ fn index() -> Redirect {
 #[get("/?<dir>")]
 fn get_dir_tmpl(dir:String) -> content::Html<String> {
   let working_dir = env::current_dir();
+  let _cn = working_dir.as_ref().unwrap().canonicalize().unwrap();
   let dir_name = decode(&dir).unwrap().to_string();
   match working_dir {
     Ok(_wd) => {
       let wd = _wd.join(dir_name.clone());
+      let _cn_wd = wd.canonicalize().unwrap();
+      if !_cn_wd.starts_with(_cn) {
+          return content::Html(format!("ERR ON OPEN DIR: {:?}\n", dir))
+      }
       let mut dirs = Vec::new();
       let mut out = Vec::new();
       let d = fs::read_dir(&wd);
