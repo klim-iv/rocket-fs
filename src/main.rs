@@ -51,7 +51,7 @@ fn index() -> Redirect {
 }
 
 #[get("/?<dir>")]
-fn get_dir_tmpl(dir:String) -> content::Html<String> {
+fn get_dir_tmpl(dir:String) -> Option<content::Html<String>> {
   let working_dir = env::current_dir();
   let _cn = working_dir.as_ref().unwrap().canonicalize().unwrap();
   let dir_name = decode(&dir).unwrap().to_string();
@@ -60,7 +60,8 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
       let wd = _wd.join(dir_name.clone());
       let _cn_wd = wd.canonicalize().unwrap();
       if !_cn_wd.starts_with(_cn) {
-          return content::Html(format!("ERR ON OPEN DIR: {:?}\n", dir))
+          println!("ERR ON OPEN DIR: {:?}\n", dir);
+          return None;
       }
       let mut dirs = Vec::new();
       let mut out = Vec::new();
@@ -105,7 +106,8 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
           }
         },
         Err(e) => {
-          print!("ERR IN READ DIR: {:?}\n", e)
+          println!("ERR IN READ DIR: {:?}\n", e);
+          ()
         }
       }
 
@@ -136,10 +138,11 @@ fn get_dir_tmpl(dir:String) -> content::Html<String> {
         Ok(c) => out = c,
         Err(e) => out = format!("ERR IN TEMPLATE: {:?}\n", e),
       }
-      content::Html(out)
+      Some(content::Html(out))
     },
     Err(e) => {
-      content::Html(format!("ERR ON OPEN DIR: {:?}\n", e))
+      println!("ERR ON OPEN DIR: {:?}\n", e);
+      None
     }
   }
 
