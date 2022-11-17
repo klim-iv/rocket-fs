@@ -1,8 +1,10 @@
 extern crate download_lp;
+extern crate base64;
 
 use std::env;
 use std::fs;
 use std::path;
+use std::io::Read;
 
 const JS: &str = "https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js";
 const CSS: &str = "https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css";
@@ -49,6 +51,15 @@ fn main() -> std::io::Result<()> {
   fs::write(
     format!("{}/icon_css", env::var_os("OUT_DIR").unwrap().into_string().unwrap()),
     format!("<link href=\"{}\" rel=\"stylesheet\">", ICONS))?;
+
+  //favicon
+  let mut f = fs::File::open("favicon.ico")?;
+  let mut _img = Vec::new();
+  f.read_to_end(&mut _img)?;
+  let b64 = base64::encode(&_img);
+  fs::write(
+    format!("{}/fav_icon_encoded", env::var_os("OUT_DIR").unwrap().into_string().unwrap()),
+    format!("{}", b64))?;
 
   Ok(())
 }

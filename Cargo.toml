@@ -8,6 +8,7 @@ edition = "2018"
 
 [build-dependencies]
 download-lp = "*"
+base64 = "*"
 
 [dependencies]
 rocket = "0.4.7"

@@ -126,6 +126,7 @@ fn get_dir_tmpl(dir:String) -> Option<content::Html<String>> {
           "title": dir_name,
           "dirs": dirs,
           "content": out,
+          "fav_icon_encoded": Cfg::current().fav_icon,
           "inc_js": include_str!(concat!(env!("OUT_DIR"), "/inc_js")),
           "inc_css": include_str!(concat!(env!("OUT_DIR"), "/inc_css")),
           "icon_css": include_str!(concat!(env!("OUT_DIR"), "/icon_css")),
@@ -150,10 +151,18 @@ fn get_dir_tmpl(dir:String) -> Option<content::Html<String>> {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Cfg {
+  #[serde(default = "default_fav_icon")]
+  fav_icon: String,
+
   prefix: String,
   host: String,
   port: u16,
 }
+
+fn default_fav_icon () -> String {
+  include_str!(concat!(env!("OUT_DIR"), "/fav_icon_encoded")).to_string()
+}
+
 
 impl Cfg {
   pub fn current() -> Arc<Cfg> {
