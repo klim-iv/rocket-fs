@@ -8,8 +8,8 @@ This is simplest file-server for exporting contents of local folder over HTTP
 
 ### How to use
 
-* build binary ( **rocket-fs** )
-* put it on some dir from **$PATH** variable
+* build: `cargo build --release`
+* put binary (*target/release/rocket-fs*) on some dir from **$PATH** variable
 * go to folder that you want to export: `cd <export-dir>`
 * start file-server: `rocket-fs`
 * for customize - in <*export-dir*> create and edit *config files*
